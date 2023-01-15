@@ -7,7 +7,7 @@
 # Description: Build MIUI Kernel using GitHub Actions
 #
 
-name: Build MIUI Kernel Proton-Clang(Build)
+name: Build MIUI Kernel (Proton-Clang)
 
 on:
   repository_dispatch:
@@ -19,8 +19,8 @@ on:
         default: 'true'
 
 env:
-  REPO_URL: https://github.com/SkyFaklist/android_kernel_xiaomi_sm8150.git
-  REPO_BRANCH: android13
+  REPO_URL: https://github.com/kerolosel3w/Iron-Kernel-Personal.git
+  REPO_BRANCH: 12
   COMPER_URL: https://github.com/kdrag0n/proton-clang.git
   CONFIG_FILE: .config
   UPLOAD_BIN_DIR: true
