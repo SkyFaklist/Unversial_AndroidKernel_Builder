@@ -1,0 +1,117 @@
+#
+# Copyright (c) 2022-2023 SkyFaklist
+#
+# This is free software, licensed under the GPL License.
+# See /LICENSE for more information.
+#
+# Description: Build MIUI Kernel using GitHub Actions
+#
+
+name: Build MIUI Kernel (LLVM)
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
+
+env:
+  REPO_URL: https://github.com/SkyFaklist/android_kernel_xiaomi_sm8150.git
+  REPO_BRANCH: miui
+  COMPER_URL: https://github.com/llvm/llvm-project/releases/download/llvmorg
+  COMPER_VERSION: 15.0.6
+  COMPER_TARGET: x86_64-linux-gnu-ubuntu-18.04
+  CONFIG_FILE: .config
+  EXTERNAL_URL: https://github.com/SkyFaklist/Unversial_AndroidKernel_Builder.git
+  TZ: Asia/Shanghai
+  ARCH: arm64
+  SUBARCH: arm64
+  DEVICE: cepheus
+  USE_CCACHE: 1
+  CCACHE_DIR: ~/.ccache
+  BUILDER: /workdir/tc-build/install/bin/
+  
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+
+    - name: Initialization environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        sudo -E apt-get -qq update
+        #sudo -E apt-get -qq install $(curl -fsSL git.io/depends-ubuntu-2004)
+        sudo -E apt-get install -y bc bison build-essential binutils-dev ca-certificates ccache cmake curl flex file g++-multilib git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev libelf-dev liblz4-tool libncurses5-dev libsdl1.2-dev libssl-dev libwxgtk3.0-gtk3-dev libc6-i386 libxml2 libxml2-utils lld lzop ninja-build pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev unzip openjdk-8-jdk language-pack-zh-hans texinfo python python3.7 vim u-boot-tools xz-utils zlib1g-dev
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
+        sudo timedatectl set-timezone "$TZ"
+        sudo mkdir -p /workdir
+        sudo chown $USER:$GROUPS /workdir
+
+    - name: Clone source code
+      working-directory: /workdir
+      run: |
+        df -hT $PWD
+        git clone $EXTERNAL_URL extra
+        git clone --depth=1 $REPO_URL -b $REPO_BRANCH kernel
+        git clone --depth=1 https://github.com/ClangBuiltLinux/tc-build.git
+        cp ./extra/compile.sh ./kernel/
+        ln -sf /workdir/kernel $GITHUB_WORKSPACE/kernel
+
+    - name: Set Cache
+      working-directory: /workdir/kernel
+      run: |
+        ccache -M 15G
+        
+    - name: PRE-Compile LLVM Base
+      working-directory: /workdir/tc-build
+      run: |
+        python3 ./build-llvm.py
+        df -hT $PWD
+        
+    - name: PRE-Compile LLVM Toolchain
+      working-directory: /workdir/tc-build
+      run: |
+        python3 ./build-binutils.py -t aarch64-linux-gnu
+        df -hT $PWD
+
+    - name: SSH connection to Actions
+      uses: P3TERX/ssh2actions@v1.0.0
+      if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
+      env:
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        
+    - name: Set DEVICE
+      working-directory: /workdir/kernel
+      run: |
+        make O=out $DEVICE_defconfig
+
+    - name: Compile Source
+      working-directory: /workdir/kernel
+      run: |
+        chmod +x ./compile.sh
+        bash ./compile.sh
+        ls /workdir/kernel/out/arch/arm64/boot/
+        
+    - name: Upload bin directory
+      uses: actions/upload-artifact@main
+      with:
+        working-directory: /workdir/kernel
+        name: MIUI_Kernel_${{ env.DEVICE }}
+        path: /workdir/kernel/out/arch/arm64/boot/
+       
+    - name: Delete workflow runs
+      uses: GitRML/delete-workflow-runs@main
+      with:
+        retain_days: 1
+        keep_minimum_runs: 3
