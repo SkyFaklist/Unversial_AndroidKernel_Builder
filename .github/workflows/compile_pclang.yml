@@ -16,7 +16,7 @@ on:
       ssh:
         description: 'SSH connection to Actions'
         required: false
-        default: 'true'
+        default: 'false'
 
 env:
   REPO_URL: https://github.com/kerolosel3w/Iron-Kernel-Personal.git
@@ -30,9 +30,10 @@ env:
   ARCH: arm64
   SUBARCH: arm64
   DEVICE: cepheus
+  DEVICE_FULL: cepheus_defconfig
   USE_CCACHE: 1
   CCACHE_DIR: ~/.ccache
-  BUILDER: /workdir/toolchain/install/bin/
+  BUILDER: /workdir/toolchain/bin/
   
 
 jobs:
@@ -82,7 +83,7 @@ jobs:
     - name: Set DEVICE
       working-directory: /workdir/kernel
       run: |
-        make O=out $DEVICE_defconfig
+        make O=out $DEVICE_FULL
 
     - name: Compile Source
       working-directory: /workdir/kernel
