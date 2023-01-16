@@ -69,10 +69,11 @@ jobs:
         df -hT $PWD
         git clone $EXTERNAL_URL extra
         git clone $ANYKERNEL_URL anykernel
-        rm -rf ./anykernel/.github && rm -rf ./anykernel/README.md && rm -rf ./anykernel/LICENSE
+        rm -rf ./anykernel/.github && rm -rf ./anykernel/README.md && rm -rf ./anykernel/.git && rm -rf ./anykernel/anykernel.sh
         git clone --depth=1 $REPO_URL -b $REPO_BRANCH kernel
         git clone --depth=1 $COMPER_URL toolchain
         cp ./extra/compile.sh ./kernel/
+        cp ./extra/anykernel.sh ./anykernel/
         ln -sf /workdir/kernel $GITHUB_WORKSPACE/kernel
 
     - name: Set Cache
