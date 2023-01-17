@@ -21,6 +21,10 @@ on:
         description: 'Run custom script'
         required: false
         default: 'false'
+      kernelsu:
+        description: 'Compile KernelSU'
+        required: false
+        default: 'false'
 
 env:
   UPLOAD_BIN_DIR: true
@@ -30,7 +34,7 @@ env:
   COMPER_URL: https://github.com/kdrag0n/proton-clang.git
   CONFIG_FILE: .config
   EXTERNAL_URL: https://github.com/SkyFaklist/Unversial_AndroidKernel_Builder.git
-  ANYKERNEL_URL: https://github.com/osm0sis/AnyKernel3.git
+  ANYKERNEL_URL: https://github.com/osm0sis/AnyKernel3.git 
   TZ: Asia/Shanghai
   ARCH: arm64
   SUBARCH: arm64
@@ -88,13 +92,19 @@ jobs:
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         
-    - name: Kernel Custom Script
+    - name: Kernel Custom Script (${{github.event.inputs.custom}})
       working-directory: /workdir
       if: (github.event.inputs.custom == 'true' && github.event.inputs.custom  != 'false') || contains(github.event.action, 'custom')
       run: |
        cp ./extra/custom.sh ./kernel/
        chmod +x ./kernel/custom.sh
        bash ./kernel/custom.sh
+
+    - name: Patch KernelSU (${{github.event.inputs.kernelsu}})
+      working-directory: /workdir/kernel
+      if: (github.event.inputs.kernelsu == 'true' && github.event.inputs.kernelsu  != 'false') || contains(github.event.action, 'kernelsu')
+      run: |
+       curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
 
     - name: Set DEVICE
       working-directory: /workdir/kernel
