@@ -17,19 +17,26 @@ on:
         description: 'SSH connection to Actions'
         required: false
         default: 'false'
+      custom:
+        description: 'Run custom script'
+        required: false
+        default: 'false'
+      kernelsu:
+        description: 'Compile KernelSU'
+        required: false
+        default: 'false'
 
 env:
   REPO_URL: https://github.com/SkyFaklist/android_kernel_xiaomi_sm8150.git
   REPO_BRANCH: miui
-  COMPER_URL: https://github.com/llvm/llvm-project/releases/download/llvmorg
-  COMPER_VERSION: 15.0.6
-  COMPER_TARGET: x86_64-linux-gnu-ubuntu-18.04
   CONFIG_FILE: .config
   EXTERNAL_URL: https://github.com/SkyFaklist/Unversial_AndroidKernel_Builder.git
+  ANYKERNEL_URL: https://github.com/osm0sis/AnyKernel3.git 
   TZ: Asia/Shanghai
   ARCH: arm64
   SUBARCH: arm64
   DEVICE: cepheus
+  DEVICE_FULL: cepheus_defconfig
   USE_CCACHE: 1
   CCACHE_DIR: ~/.ccache
   BUILDER: /workdir/tc-build/install/bin/
@@ -62,6 +69,7 @@ jobs:
       run: |
         df -hT $PWD
         git clone $EXTERNAL_URL extra
+        git clone $ANYKERNEL_URL anykernel
         git clone --depth=1 $REPO_URL -b $REPO_BRANCH kernel
         git clone --depth=1 https://github.com/ClangBuiltLinux/tc-build.git
         cp ./extra/compile.sh ./kernel/
@@ -84,12 +92,23 @@ jobs:
         python3 ./build-binutils.py -t aarch64-linux-gnu
         df -hT $PWD
 
-    - name: SSH connection to Actions
+    - name: Patch KernelSU (${{github.event.inputs.kernelsu}})
+      working-directory: /workdir/kernel
+      if: (github.event.inputs.kernelsu == 'true' && github.event.inputs.kernelsu  != 'false') || contains(github.event.action, 'kernelsu')
+      run: |
+       curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+        
+    - name: Kernel Custom Script (${{github.event.inputs.custom}})
+      working-directory: /workdir
+      if: (github.event.inputs.custom == 'true' && github.event.inputs.custom  != 'false') || contains(github.event.action, 'custom')
+      run: |
+       cp ./extra/custom.sh ./kernel/
+       chmod +x ./kernel/custom.sh
+       bash ./kernel/custom.sh
+        
+    - name: SSH connection to Actions (${{github.event.inputs.ssh}})
       uses: P3TERX/ssh2actions@v1.0.0
       if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
-      env:
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         
     - name: Set DEVICE
       working-directory: /workdir/kernel
@@ -103,12 +122,25 @@ jobs:
         bash ./compile.sh
         ls /workdir/kernel/out/arch/arm64/boot/
         
-    - name: Upload bin directory
+    - name: Pack Kernel
+      working-directory: /workdir
+      run: |
+        cp /workdir/kernel/out/arch/arm64/boot/Image.gz-dtb ./anykernel/Image-dtb
+        
+        
+    - name: Upload Kernel directory
       uses: actions/upload-artifact@main
       with:
         working-directory: /workdir/kernel
-        name: MIUI_Kernel_${{ env.DEVICE }}
+        name: MIUI_SKLoader_${{ env.DEVICE }}_TESTFiles
         path: /workdir/kernel/out/arch/arm64/boot/
+        
+    - name: Upload Kernel Patcher
+      uses: actions/upload-artifact@main
+      with:
+        working-directory: /workdir
+        name: MIUI_SKLoader_${{ env.DEVICE }}_Anykernel
+        path: /workdir/anykernel/
        
     - name: Delete workflow runs
       uses: GitRML/delete-workflow-runs@main
