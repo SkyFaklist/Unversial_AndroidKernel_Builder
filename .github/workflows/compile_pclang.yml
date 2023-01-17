@@ -125,14 +125,14 @@ jobs:
       uses: actions/upload-artifact@main
       with:
         working-directory: /workdir/kernel
-        name: MIUI_Kernel_${{ env.DEVICE }}_TESTFiles
+        name: MIUI_SKLoader_${{ env.DEVICE }}_TESTFiles
         path: /workdir/kernel/out/arch/arm64/boot/
         
     - name: Upload Kernel Patcher
       uses: actions/upload-artifact@main
       with:
         working-directory: /workdir
-        name: MIUI_Kernel_${{ env.DEVICE }}_Anykernel
+        name: MIUI_SKLoader_${{ env.DEVICE }}_Anykernel
         path: /workdir/anykernel/
        
     - name: Delete workflow runs
