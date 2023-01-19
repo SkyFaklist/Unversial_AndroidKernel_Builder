@@ -85,11 +85,6 @@ jobs:
       run: |
         ccache -M 15G
         
-    - name: Set Device
-      working-directory: /workdir/kernel
-      run: |
-        make O=out $DEVICE_FULL
-        
     - name: Patch KernelSU (${{github.event.inputs.kernelsu}})
       working-directory: /workdir/kernel
       if: (github.event.inputs.kernelsu == 'true' && github.event.inputs.kernelsu  != 'false') || contains(github.event.action, 'kernelsu')
@@ -107,6 +102,11 @@ jobs:
     - name: SSH connection to Actions (${{github.event.inputs.ssh}})
       uses: P3TERX/ssh2actions@v1.0.0
       if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
+
+    - name: Set Device
+      working-directory: /workdir/kernel
+      run: |
+        make O=out $DEVICE_FULL
 
     - name: Compile Source
       working-directory: /workdir/kernel
