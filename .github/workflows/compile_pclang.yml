@@ -29,8 +29,8 @@ on:
 env:
   UPLOAD_BIN_DIR: true
   UPLOAD_RELEASE: true
-  REPO_URL: https://github.com/SkyFaklist/android_kernel_xiaomi_sm8150.git
-  REPO_BRANCH: miui
+  REPO_URL: https://github.com/Pierre2324/NGK_android_kernel_xiaomi_sdm845.git
+  REPO_BRANCH: t-caf-latest
   COMPER_URL: https://github.com/kdrag0n/proton-clang.git
   CONFIG_FILE: .config
   EXTERNAL_URL: https://github.com/SkyFaklist/Unversial_AndroidKernel_Builder.git
