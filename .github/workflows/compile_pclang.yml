@@ -38,8 +38,8 @@ env:
   TZ: Asia/Shanghai
   ARCH: arm64
   SUBARCH: arm64
-  DEVICE: cepheus
-  DEVICE_FULL: cepheus_defconfig
+  DEVICE: dipper
+  DEVICE_FULL: dipper_defconfig
   USE_CCACHE: 1
   CCACHE_DIR: ~/.ccache
   BUILDER: /workdir/toolchain/bin/
