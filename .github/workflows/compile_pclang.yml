@@ -4,10 +4,10 @@
 # This is free software, licensed under the GPL License.
 # See /LICENSE for more information.
 #
-# Description: Build MIUI Kernel using GitHub Actions
+# Description: Build UA Kernel using GitHub Actions
 #
 
-name: Build MIUI Kernel (Proton-Clang)
+name: Build UA Kernel (Proton-Clang)
 
 on:
   repository_dispatch:
@@ -29,17 +29,17 @@ on:
 env:
   UPLOAD_BIN_DIR: true
   UPLOAD_RELEASE: true
-  REPO_URL: https://github.com/Pierre2324/NGK_android_kernel_xiaomi_sdm845.git
-  REPO_BRANCH: t-caf-latest
+  REPO_URL: <your repo>
+  REPO_BRANCH: master
   COMPER_URL: https://github.com/kdrag0n/proton-clang.git
   CONFIG_FILE: .config
-  EXTERNAL_URL: https://github.com/SkyFaklist/Unversial_AndroidKernel_Builder.git
+  EXTERNAL_URL: https://github.com/<username>/Unversial_AndroidKernel_Builder.git
   ANYKERNEL_URL: https://github.com/osm0sis/AnyKernel3.git 
   TZ: Asia/Shanghai
   ARCH: arm64
   SUBARCH: arm64
-  DEVICE: dipper
-  DEVICE_FULL: dipper_defconfig
+  DEVICE: <devices>
+  DEVICE_FULL: <device>_defconfig
   USE_CCACHE: 1
   CCACHE_DIR: ~/.ccache
   BUILDER: /workdir/toolchain/bin/
@@ -100,7 +100,7 @@ jobs:
        bash ./kernel/custom.sh
         
     - name: SSH connection to Actions (${{github.event.inputs.ssh}})
-      uses: P3TERX/ssh2actions@v1.0.0
+      uses: mxschmitt/action-tmate@v3
       if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
 
     - name: Set Device
@@ -132,7 +132,7 @@ jobs:
       uses: actions/upload-artifact@main
       with:
         working-directory: /workdir
-        name: MIUI_SKLoader_${{ env.DEVICE }}_Anykernel
+        name: UA_Loader_${{ env.DEVICE }}_Anykernel
         path: /workdir/anykernel/
        
     - name: Delete workflow runs
