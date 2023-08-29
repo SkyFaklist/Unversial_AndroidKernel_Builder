@@ -51,7 +51,7 @@ env:
   TZ: Asia/Shanghai
   ARCH: arm64
   SUBARCH: arm64
-  DEVICE: <devices>
+  DEVICE: ${{github.event.inputs.device}
   CCACHE_DIR: ~/.ccache
   BUILDER: /workdir/toolchain/bin/
   
