@@ -21,6 +21,10 @@ on:
         description: 'Branch of Kernel repo'
         required: true
         default: 'master'
+      device:
+        description: 'Device code of Kernel'
+        required: true
+        default: ''
       ssh:
         description: 'SSH connection to Actions'
         required: false
