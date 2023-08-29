@@ -51,7 +51,6 @@ env:
   TZ: Asia/Shanghai
   ARCH: arm64
   SUBARCH: arm64
-  DEVICE: ${{github.event.inputs.device}
   CCACHE_DIR: ~/.ccache
   BUILDER: /workdir/toolchain/bin/
   
@@ -122,9 +121,7 @@ jobs:
 
     - name: Set Device
       working-directory: /workdir/kernel
-      run: make O=out $DEVICE_FULL
-      env: 
-        DEVICE_FULL: ${{ env.DEVICE }}_defconfig
+      run: make O=out ${{github.event.inputs.device}_defconfig
 
     - name: Compile Source
       working-directory: /workdir/kernel
@@ -139,21 +136,21 @@ jobs:
         mkdir /workdir/release_up
         ln -sf /workdir/release_up $GITHUB_WORKSPACE/release_up
         cp /workdir/kernel/out/arch/arm64/boot/Image.gz-dtb ./anykernel/Image-dtb
-        tar -zcvf /workdir/release_up/UALoader_${{ env.DEVICE }}_Fullpack.tar.gz /workdir/kernel/out/arch/arm64/boot/*
-        zip -q -r /workdir/release_up/UA_Loader_${{ env.DEVICE }}_Anykernel.zip /workdir/anykernel/*
+        tar -zcvf /workdir/release_up/UALoader_${{github.event.inputs.device}_Fullpack.tar.gz /workdir/kernel/out/arch/arm64/boot/*
+        zip -q -r /workdir/release_up/UA_Loader_${{github.event.inputs.device}_Anykernel.zip /workdir/anykernel/*
         
     - name: Upload Kernel directory
       uses: actions/upload-artifact@main
       with:
         working-directory: /workdir/kernel
-        name: UALoader_${{ env.DEVICE }}_Fullpack
+        name: UALoader_${{github.event.inputs.device}_Fullpack
         path: /workdir/kernel/out/arch/arm64/boot/
         
     - name: Upload Kernel Patcher
       uses: actions/upload-artifact@main
       with:
         working-directory: /workdir
-        name: UA_Loader_${{ env.DEVICE }}_Anykernel
+        name: UA_Loader_${{github.event.inputs.device}_Anykernel
         path: /workdir/anykernel/
 
     - name: Generate release tag
@@ -164,7 +161,7 @@ jobs:
         touch release.txt
         echo "::set-output name=status::success"
 
-    - name: Upload firmware to release
+    - name: Upload Kernel to release
       uses: softprops/action-gh-release@v1
       if: steps.tag.outputs.status == 'success' && !cancelled()
       env:
