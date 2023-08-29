@@ -1,7 +1,5 @@
 #!/bin/bash
 starttime=`date +'%Y-%m-%d %H:%M:%S'`
-export ARCH=arm64
-export SUBARCH=arm64
 PATH="$BUILDER:$PATH"
 make -j$(nproc --all) O=out \
     NM=llvm-nm \
