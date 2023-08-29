@@ -13,6 +13,14 @@ on:
   repository_dispatch:
   workflow_dispatch:
     inputs:
+      repo:
+        description: 'Kernel Repo URL'
+        required: true
+        default: ''
+      repo_branch:
+        description: 'Branch of Kernel repo'
+        required: true
+        default: 'master'
       ssh:
         description: 'SSH connection to Actions'
         required: false
@@ -25,22 +33,21 @@ on:
         description: 'Compile KernelSU'
         required: false
         default: 'false'
+      ccache:
+        description: 'Use CCache'
+        required: true
+        default: 'true'
 
 env:
   UPLOAD_BIN_DIR: true
   UPLOAD_RELEASE: true
-  REPO_URL: <your repo>
   REPO_BRANCH: master
   COMPER_URL: https://github.com/kdrag0n/proton-clang.git
-  CONFIG_FILE: .config
-  EXTERNAL_URL: https://github.com/<username>/Unversial_AndroidKernel_Builder.git
   ANYKERNEL_URL: https://github.com/osm0sis/AnyKernel3.git 
   TZ: Asia/Shanghai
   ARCH: arm64
   SUBARCH: arm64
   DEVICE: <devices>
-  DEVICE_FULL: <device>_defconfig
-  USE_CCACHE: 1
   CCACHE_DIR: ~/.ccache
   BUILDER: /workdir/toolchain/bin/
   
@@ -71,27 +78,32 @@ jobs:
       working-directory: /workdir
       run: |
         df -hT $PWD
-        git clone $EXTERNAL_URL extra
+        mkdir extra
+        mv anykernel.sh extra/ && mv compile.sh extra/ && mv custom.sh extra/
         git clone $ANYKERNEL_URL anykernel
         rm -rf ./anykernel/.github && rm -rf ./anykernel/README.md && rm -rf ./anykernel/.git && rm -rf ./anykernel/anykernel.sh
-        git clone --depth=1 $REPO_URL -b $REPO_BRANCH kernel
+        git clone --depth=1 ${{github.event.inputs.repo}} -b ${{github.event.inputs.repo_branch}} kernel
         git clone --depth=1 $COMPER_URL toolchain
         cp ./extra/compile.sh ./kernel/
         cp ./extra/anykernel.sh ./anykernel/
         ln -sf /workdir/kernel $GITHUB_WORKSPACE/kernel
 
-    - name: Set Cache
+    - name: Set CCache (${{github.event.inputs.ccache}})
+      id: ccache
       working-directory: /workdir/kernel
+      if: (github.event.inputs.ccache == 'true' && github.event.inputs.ccache  != 'false') || contains(github.event.action, 'ccache')
       run: |
         ccache -M 15G
         
     - name: Patch KernelSU (${{github.event.inputs.kernelsu}})
+      id: kernelsu
       working-directory: /workdir/kernel
       if: (github.event.inputs.kernelsu == 'true' && github.event.inputs.kernelsu  != 'false') || contains(github.event.action, 'kernelsu')
       run: |
        curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
         
     - name: Kernel Custom Script (${{github.event.inputs.custom}})
+      id: custom
       working-directory: /workdir
       if: (github.event.inputs.custom == 'true' && github.event.inputs.custom  != 'false') || contains(github.event.action, 'custom')
       run: |
@@ -100,13 +112,15 @@ jobs:
        bash ./kernel/custom.sh
         
     - name: SSH connection to Actions (${{github.event.inputs.ssh}})
+      id: ssh
       uses: mxschmitt/action-tmate@v3
       if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
 
     - name: Set Device
       working-directory: /workdir/kernel
-      run: |
-        make O=out $DEVICE_FULL
+      run: make O=out $DEVICE_FULL
+      env: 
+        DEVICE_FULL: ${{ env.DEVICE }}_defconfig
 
     - name: Compile Source
       working-directory: /workdir/kernel
@@ -118,14 +132,17 @@ jobs:
     - name: Pack Kernel
       working-directory: /workdir
       run: |
+        mkdir /workdir/release_up
+        ln -sf /workdir/release_up $GITHUB_WORKSPACE/release_up
         cp /workdir/kernel/out/arch/arm64/boot/Image.gz-dtb ./anykernel/Image-dtb
-        
+        tar -zcvf /workdir/release_up/UALoader_${{ env.DEVICE }}_Fullpack.tar.gz /workdir/kernel/out/arch/arm64/boot/*
+        zip -q -r /workdir/release_up/UA_Loader_${{ env.DEVICE }}_Anykernel.zip /workdir/anykernel/*
         
     - name: Upload Kernel directory
       uses: actions/upload-artifact@main
       with:
         working-directory: /workdir/kernel
-        name: MIUI_SKLoader_${{ env.DEVICE }}_TESTFiles
+        name: UALoader_${{ env.DEVICE }}_Fullpack
         path: /workdir/kernel/out/arch/arm64/boot/
         
     - name: Upload Kernel Patcher
@@ -134,6 +151,24 @@ jobs:
         working-directory: /workdir
         name: UA_Loader_${{ env.DEVICE }}_Anykernel
         path: /workdir/anykernel/
+
+    - name: Generate release tag
+      id: tag
+      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      run: |
+        echo "::set-output name=release_tag::$("UAB-"+date +"%Y.%m.%d-%H%M")"
+        touch release.txt
+        echo "::set-output name=status::success"
+
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v1
+      if: steps.tag.outputs.status == 'success' && !cancelled()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        body_path: release.txt
+        files: /workdir/release_up/*
        
     - name: Delete workflow runs
       uses: GitRML/delete-workflow-runs@main
